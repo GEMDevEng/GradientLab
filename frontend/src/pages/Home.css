@@ -4,6 +4,30 @@
   padding: 20px;
 }
 
+.home-layout {
+  display: flex;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.home-main {
+  flex: 1;
+}
+
+.home-sidebar {
+  width: 300px;
+}
+
 .home-section {
   margin-bottom: 30px;
+}
+
+@media (max-width: 992px) {
+  .home-layout {
+    flex-direction: column;
+  }
+
+  .home-sidebar {
+    width: 100%;
+  }
 }
