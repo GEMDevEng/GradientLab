@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD Pipeline
 
 on:
   push:
@@ -7,40 +7,72 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: '3.8'
-    
+
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
         if [ -f backend/requirements.txt ]; then pip install -r backend/requirements.txt; fi
-    
+
+    - name: Lint Python code
+      run: |
+        pip install flake8
+        flake8 backend --count --select=E9,F63,F7,F82 --show-source --statistics
+
     - name: Set up Node.js
       uses: actions/setup-node@v2
       with:
         node-version: '14'
-    
+
     - name: Install Node.js dependencies
       run: |
         cd frontend
         npm install
-    
+
+    - name: Lint JavaScript code
+      run: |
+        cd frontend
+        npm run lint || true
+
     - name: Build React app
       run: |
         cd frontend
         npm run build
-    
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: frontend-build
+        path: frontend/build
+
+  deploy:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: frontend-build
+        path: frontend/build
+
     - name: Deploy to GitHub Pages
-      if: github.ref == 'refs/heads/main'
       uses: JamesIves/github-pages-deploy-action@4.1.4
       with:
         branch: gh-pages
         folder: frontend/build
+        clean: true

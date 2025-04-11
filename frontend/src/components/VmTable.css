@@ -1,0 +1,116 @@
+.vm-table-container {
+  padding: 20px;
+}
+
+.vm-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.vm-table th,
+.vm-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.vm-table th {
+  background-color: #f5f5f5;
+  font-weight: bold;
+  color: #333;
+}
+
+.vm-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.status-running {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-stopped {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.status-provisioning {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-button.start {
+  background-color: #28a745;
+  color: white;
+}
+
+.action-button.stop {
+  background-color: #dc3545;
+  color: white;
+}
+
+.action-button.delete {
+  background-color: #6c757d;
+  color: white;
+}
+
+.vm-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.create-button {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.create-button:hover {
+  background-color: #0069d9;
+}
+
+.loading, .error {
+  padding: 20px;
+  text-align: center;
+  font-size: 16px;
+}
+
+.error {
+  color: #dc3545;
+}
