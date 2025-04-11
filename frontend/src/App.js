@@ -6,6 +6,8 @@ import './App.css';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Settings from './pages/Settings';
+import Profile from './pages/Profile';
+import Analytics from './pages/Analytics';
 
 // Import auth utilities
 import { isAuthenticated, logout } from './api/auth';
@@ -50,6 +52,12 @@ function App() {
                 <Link to="/" className="nav-link">Dashboard</Link>
               </li>
               <li className="nav-item">
+                <Link to="/analytics" className="nav-link">Analytics</Link>
+              </li>
+              <li className="nav-item">
+                <Link to="/profile" className="nav-link">Profile</Link>
+              </li>
+              <li className="nav-item">
                 <Link to="/settings" className="nav-link">Settings</Link>
               </li>
               <li className="nav-item">
@@ -65,6 +73,8 @@ function App() {
               authenticated ? <Redirect to="/" /> : <Login setAuthenticated={setAuthenticated} />
             )} />
             <PrivateRoute exact path="/" component={Home} />
+            <PrivateRoute path="/analytics" component={Analytics} />
+            <PrivateRoute path="/profile" component={Profile} />
             <PrivateRoute path="/settings" component={Settings} />
             <Redirect to="/" />
           </Switch>
