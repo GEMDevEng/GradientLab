@@ -1,10 +1,12 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
+from flask_wtf.csrf import CSRFProtect
 import os
 import logging
 from datetime import timedelta
 from dotenv import load_dotenv
+from middleware.security import HTTPSRedirect, RateLimiter
 
 # Load environment variables from .env file if it exists
 load_dotenv()
@@ -36,15 +38,25 @@ app = Flask(__name__)
 app.config['ENV'] = os.environ.get('FLASK_ENV', 'production')
 app.config['DEBUG'] = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
 
-# Configure JWT
+# Configure security
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'dev-secret-key')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1)
+app.config['WTF_CSRF_ENABLED'] = os.environ.get('FLASK_ENV', 'production') != 'development'
+app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour
+app.config['WTF_CSRF_SSL_STRICT'] = True
 
-# Initialize JWT
+# Initialize security extensions
 jwt = JWTManager(app)
+csrf = CSRFProtect(app)
 
 # Enable CORS for all routes
-CORS(app)
+cors = CORS(app, supports_credentials=True)
+
+# Apply security middleware
+if os.environ.get('FLASK_ENV', 'production') != 'development':
+    app.wsgi_app = HTTPSRedirect(app.wsgi_app)
+    app.wsgi_app = RateLimiter(app.wsgi_app, limit=100, window=60)
 
 # Register API blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
