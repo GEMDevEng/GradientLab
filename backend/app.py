@@ -1,6 +1,18 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 import os
+import logging
+from dotenv import load_dotenv
+
+# Load environment variables from .env file if it exists
+load_dotenv()
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Import API blueprints
 from api.vm_provision import vm_provision_bp
@@ -10,6 +22,10 @@ from api.referral_manage import referral_manage_bp
 
 # Create Flask app
 app = Flask(__name__)
+
+# Configure app
+app.config['ENV'] = os.environ.get('FLASK_ENV', 'production')
+app.config['DEBUG'] = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
 
 # Enable CORS for all routes
 CORS(app)
