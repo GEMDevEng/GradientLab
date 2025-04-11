@@ -10,6 +10,7 @@ import logging
 from datetime import datetime
 from cloud.provider import get_provider
 from models.user import get_user_by_id
+from models.vm import create_vm, get_vm_by_id, get_vm_by_provider_id, get_vms_by_user, update_vm, delete_vm as db_delete_vm
 
 # Create a Blueprint for VM provisioning
 vm_provision_bp = Blueprint('vm_provision', __name__)
@@ -32,23 +33,27 @@ def get_provider_instance(provider_name):
 @vm_provision_bp.route('/vms', methods=['GET'])
 @jwt_required()
 def get_vms():
-    """Get all VMs."""
-    # Get all VMs from all providers
-    all_vms = []
-    for provider_name in providers:
-        provider = get_provider_instance(provider_name)
-        all_vms.extend(provider.list_vms())
+    """Get all VMs for the authenticated user."""
+    # Get user ID from JWT token
+    user_id = get_jwt_identity()
+
+    # Get all VMs for the user from the database
+    vms = get_vms_by_user(user_id)
+
+    # Convert VMs to dictionaries
+    vm_dicts = [vm.to_dict() for vm in vms]
 
     return jsonify({
         'status': 'success',
-        'data': all_vms
+        'data': vm_dicts
     }), 200
 
 @vm_provision_bp.route('/vms', methods=['POST'])
 @jwt_required()
-def create_vm():
+def create_vm_endpoint():
     """Create a new VM."""
     data = request.json
+    user_id = get_jwt_identity()
 
     # Validate required fields
     required_fields = ['provider', 'region', 'name']
@@ -72,16 +77,35 @@ def create_vm():
 
     # Create VM using provider
     try:
-        new_vm = provider.create_vm(
+        # Create VM in cloud provider
+        cloud_vm = provider.create_vm(
             name=data['name'],
             region=data['region'],
             size=data.get('size', 'small')
         )
 
+        # Create VM in database
+        db_vm = create_vm(
+            name=data['name'],
+            provider=provider_name,
+            region=data['region'],
+            instance_type=cloud_vm.get('instance_type', data.get('size', 'small')),
+            user_id=user_id,
+            vm_id=cloud_vm.get('id'),
+            ip_address=cloud_vm.get('ip_address'),
+            status=cloud_vm.get('status', 'provisioning')
+        )
+
+        if not db_vm:
+            return jsonify({
+                'status': 'error',
+                'message': 'Error creating VM in database'
+            }), 500
+
         return jsonify({
             'status': 'success',
             'message': 'VM created successfully',
-            'data': new_vm
+            'data': db_vm.to_dict()
         }), 201
     except Exception as e:
         logger.error(f"Error creating VM: {str(e)}")
@@ -90,68 +114,14 @@ def create_vm():
             'message': f'Error creating VM: {str(e)}'
         }), 500
 
-@vm_provision_bp.route('/vms/<string:vm_id>', methods=['GET'])
+@vm_provision_bp.route('/vms/<int:vm_id>', methods=['GET'])
 @jwt_required()
-def get_vm(vm_id):
+def get_vm_endpoint(vm_id):
     """Get a specific VM by ID."""
-    # Extract provider from VM ID
-    provider_name = None
-    if vm_id.startswith('ocid1'):
-        provider_name = 'oracle'
-    elif 'projects' in vm_id and 'zones' in vm_id and 'instances' in vm_id:
-        provider_name = 'google'
-    elif 'subscriptions' in vm_id and 'resourceGroups' in vm_id:
-        provider_name = 'azure'
+    user_id = get_jwt_identity()
 
-    if not provider_name:
-        return jsonify({
-            'status': 'error',
-            'message': f'Unable to determine provider for VM ID: {vm_id}'
-        }), 400
-
-    # Get provider instance
-    provider = get_provider_instance(provider_name)
-
-    # Get VM details
-    vm = provider.get_vm(vm_id)
-
-    if vm:
-        return jsonify({
-            'status': 'success',
-            'data': vm
-        }), 200
-
-    return jsonify({
-        'status': 'error',
-        'message': f'VM with ID {vm_id} not found'
-    }), 404
-
-@vm_provision_bp.route('/vms/<string:vm_id>', methods=['PUT'])
-@jwt_required()
-def update_vm(vm_id):
-    """Update a specific VM by ID."""
-    data = request.json
-
-    # Extract provider from VM ID
-    provider_name = None
-    if vm_id.startswith('ocid1'):
-        provider_name = 'oracle'
-    elif 'projects' in vm_id and 'zones' in vm_id and 'instances' in vm_id:
-        provider_name = 'google'
-    elif 'subscriptions' in vm_id and 'resourceGroups' in vm_id:
-        provider_name = 'azure'
-
-    if not provider_name:
-        return jsonify({
-            'status': 'error',
-            'message': f'Unable to determine provider for VM ID: {vm_id}'
-        }), 400
-
-    # Get provider instance
-    provider = get_provider_instance(provider_name)
-
-    # Get VM details
-    vm = provider.get_vm(vm_id)
+    # Get VM from database
+    vm = get_vm_by_id(vm_id)
 
     if not vm:
         return jsonify({
@@ -159,82 +129,40 @@ def update_vm(vm_id):
             'message': f'VM with ID {vm_id} not found'
         }), 404
 
-    # Update VM properties
-    # In a real implementation, this would call the provider's API to update the VM
-    # For now, we'll just update our mock data
-    for key, value in data.items():
-        if key not in ['id', 'provider', 'created_at']:  # Don't allow updating these fields
-            vm[key] = value
+    # Check if the VM belongs to the authenticated user
+    if vm.user_id != user_id:
+        return jsonify({
+            'status': 'error',
+            'message': 'You do not have permission to access this VM'
+        }), 403
 
-    vm['updated_at'] = datetime.now().isoformat()
+    # Get provider instance
+    provider = get_provider_instance(vm.provider)
+
+    # Get VM details from cloud provider if available
+    if vm.vm_id:
+        try:
+            cloud_vm = provider.get_vm(vm.vm_id)
+            if cloud_vm and cloud_vm.get('status') != vm.status:
+                # Update VM status in database if it has changed
+                vm = update_vm(vm.id, status=cloud_vm.get('status'))
+        except Exception as e:
+            logger.warning(f"Error getting VM details from provider: {str(e)}")
 
     return jsonify({
         'status': 'success',
-        'message': f'VM with ID {vm_id} updated successfully',
-        'data': vm
+        'data': vm.to_dict()
     }), 200
 
-@vm_provision_bp.route('/vms/<string:vm_id>', methods=['DELETE'])
+@vm_provision_bp.route('/vms/<int:vm_id>', methods=['PUT'])
 @jwt_required()
-def delete_vm(vm_id):
-    """Delete a specific VM by ID."""
-    # Extract provider from VM ID
-    provider_name = None
-    if vm_id.startswith('ocid1'):
-        provider_name = 'oracle'
-    elif 'projects' in vm_id and 'zones' in vm_id and 'instances' in vm_id:
-        provider_name = 'google'
-    elif 'subscriptions' in vm_id and 'resourceGroups' in vm_id:
-        provider_name = 'azure'
+def update_vm_endpoint(vm_id):
+    """Update a specific VM by ID."""
+    data = request.json
+    user_id = get_jwt_identity()
 
-    if not provider_name:
-        return jsonify({
-            'status': 'error',
-            'message': f'Unable to determine provider for VM ID: {vm_id}'
-        }), 400
-
-    # Get provider instance
-    provider = get_provider_instance(provider_name)
-
-    # Delete VM
-    deleted_vm = provider.delete_vm(vm_id)
-
-    if deleted_vm:
-        return jsonify({
-            'status': 'success',
-            'message': f'VM with ID {vm_id} deleted successfully',
-            'data': deleted_vm
-        }), 200
-
-    return jsonify({
-        'status': 'error',
-        'message': f'VM with ID {vm_id} not found'
-    }), 404
-
-@vm_provision_bp.route('/vms/<string:vm_id>/start', methods=['POST'])
-@jwt_required()
-def start_vm(vm_id):
-    """Start a specific VM by ID."""
-    # Extract provider from VM ID
-    provider_name = None
-    if vm_id.startswith('ocid1'):
-        provider_name = 'oracle'
-    elif 'projects' in vm_id and 'zones' in vm_id and 'instances' in vm_id:
-        provider_name = 'google'
-    elif 'subscriptions' in vm_id and 'resourceGroups' in vm_id:
-        provider_name = 'azure'
-
-    if not provider_name:
-        return jsonify({
-            'status': 'error',
-            'message': f'Unable to determine provider for VM ID: {vm_id}'
-        }), 400
-
-    # Get provider instance
-    provider = get_provider_instance(provider_name)
-
-    # Get VM details
-    vm = provider.get_vm(vm_id)
+    # Get VM from database
+    vm = get_vm_by_id(vm_id)
 
     if not vm:
         return jsonify({
@@ -242,52 +170,163 @@ def start_vm(vm_id):
             'message': f'VM with ID {vm_id} not found'
         }), 404
 
+    # Check if the VM belongs to the authenticated user
+    if vm.user_id != user_id:
+        return jsonify({
+            'status': 'error',
+            'message': 'You do not have permission to update this VM'
+        }), 403
+
+    # Get provider instance
+    provider = get_provider_instance(vm.provider)
+
+    # Update VM in cloud provider if needed
+    if vm.vm_id and 'status' in data:
+        try:
+            # In a real implementation, this would call the provider's API to update the VM
+            # For now, we'll just log the action
+            logger.info(f"Updating VM {vm.vm_id} in provider {vm.provider} with status {data['status']}")
+        except Exception as e:
+            logger.error(f"Error updating VM in provider: {str(e)}")
+
+    # Update VM in database
+    try:
+        # Only allow updating certain fields
+        allowed_fields = ['name', 'status']
+        update_data = {k: v for k, v in data.items() if k in allowed_fields}
+
+        updated_vm = update_vm(vm.id, **update_data)
+
+        if not updated_vm:
+            return jsonify({
+                'status': 'error',
+                'message': 'Error updating VM in database'
+            }), 500
+
+        return jsonify({
+            'status': 'success',
+            'message': f'VM with ID {vm_id} updated successfully',
+            'data': updated_vm.to_dict()
+        }), 200
+    except Exception as e:
+        logger.error(f"Error updating VM: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Error updating VM: {str(e)}'
+        }), 500
+
+@vm_provision_bp.route('/vms/<int:vm_id>', methods=['DELETE'])
+@jwt_required()
+def delete_vm_endpoint(vm_id):
+    """Delete a specific VM by ID."""
+    user_id = get_jwt_identity()
+
+    # Get VM from database
+    vm = get_vm_by_id(vm_id)
+
+    if not vm:
+        return jsonify({
+            'status': 'error',
+            'message': f'VM with ID {vm_id} not found'
+        }), 404
+
+    # Check if the VM belongs to the authenticated user
+    if vm.user_id != user_id:
+        return jsonify({
+            'status': 'error',
+            'message': 'You do not have permission to delete this VM'
+        }), 403
+
+    # Delete VM from cloud provider if it exists
+    if vm.vm_id:
+        try:
+            # Get provider instance
+            provider = get_provider_instance(vm.provider)
+
+            # Delete VM from cloud provider
+            provider.delete_vm(vm.vm_id)
+        except Exception as e:
+            logger.error(f"Error deleting VM from provider: {str(e)}")
+
+    # Delete VM from database
+    if db_delete_vm(vm.id):
+        return jsonify({
+            'status': 'success',
+            'message': f'VM with ID {vm_id} deleted successfully'
+        }), 200
+
+    return jsonify({
+        'status': 'error',
+        'message': f'Error deleting VM from database'
+    }), 500
+
+@vm_provision_bp.route('/vms/<int:vm_id>/start', methods=['POST'])
+@jwt_required()
+def start_vm_endpoint(vm_id):
+    """Start a specific VM by ID."""
+    user_id = get_jwt_identity()
+
+    # Get VM from database
+    vm = get_vm_by_id(vm_id)
+
+    if not vm:
+        return jsonify({
+            'status': 'error',
+            'message': f'VM with ID {vm_id} not found'
+        }), 404
+
+    # Check if the VM belongs to the authenticated user
+    if vm.user_id != user_id:
+        return jsonify({
+            'status': 'error',
+            'message': 'You do not have permission to start this VM'
+        }), 403
+
     # Check if VM is already running
-    if vm['status'] == 'running':
+    if vm.status == 'running':
         return jsonify({
             'status': 'error',
             'message': f'VM with ID {vm_id} is already running'
         }), 400
 
-    # Start VM
-    started_vm = provider.start_vm(vm_id)
+    # Start VM in cloud provider if it exists
+    if vm.vm_id:
+        try:
+            # Get provider instance
+            provider = get_provider_instance(vm.provider)
 
-    if started_vm:
+            # Start VM in cloud provider
+            provider.start_vm(vm.vm_id)
+        except Exception as e:
+            logger.error(f"Error starting VM in provider: {str(e)}")
+            return jsonify({
+                'status': 'error',
+                'message': f'Error starting VM in provider: {str(e)}'
+            }), 500
+
+    # Update VM status in database
+    updated_vm = update_vm(vm.id, status='running')
+
+    if updated_vm:
         return jsonify({
             'status': 'success',
             'message': f'VM with ID {vm_id} started successfully',
-            'data': started_vm
+            'data': updated_vm.to_dict()
         }), 200
 
     return jsonify({
         'status': 'error',
-        'message': f'Failed to start VM with ID {vm_id}'
+        'message': f'Error updating VM status in database'
     }), 500
 
-@vm_provision_bp.route('/vms/<string:vm_id>/stop', methods=['POST'])
+@vm_provision_bp.route('/vms/<int:vm_id>/stop', methods=['POST'])
 @jwt_required()
-def stop_vm(vm_id):
+def stop_vm_endpoint(vm_id):
     """Stop a specific VM by ID."""
-    # Extract provider from VM ID
-    provider_name = None
-    if vm_id.startswith('ocid1'):
-        provider_name = 'oracle'
-    elif 'projects' in vm_id and 'zones' in vm_id and 'instances' in vm_id:
-        provider_name = 'google'
-    elif 'subscriptions' in vm_id and 'resourceGroups' in vm_id:
-        provider_name = 'azure'
+    user_id = get_jwt_identity()
 
-    if not provider_name:
-        return jsonify({
-            'status': 'error',
-            'message': f'Unable to determine provider for VM ID: {vm_id}'
-        }), 400
-
-    # Get provider instance
-    provider = get_provider_instance(provider_name)
-
-    # Get VM details
-    vm = provider.get_vm(vm_id)
+    # Get VM from database
+    vm = get_vm_by_id(vm_id)
 
     if not vm:
         return jsonify({
@@ -295,26 +334,48 @@ def stop_vm(vm_id):
             'message': f'VM with ID {vm_id} not found'
         }), 404
 
+    # Check if the VM belongs to the authenticated user
+    if vm.user_id != user_id:
+        return jsonify({
+            'status': 'error',
+            'message': 'You do not have permission to stop this VM'
+        }), 403
+
     # Check if VM is already stopped
-    if vm['status'] == 'stopped':
+    if vm.status == 'stopped':
         return jsonify({
             'status': 'error',
             'message': f'VM with ID {vm_id} is already stopped'
         }), 400
 
-    # Stop VM
-    stopped_vm = provider.stop_vm(vm_id)
+    # Stop VM in cloud provider if it exists
+    if vm.vm_id:
+        try:
+            # Get provider instance
+            provider = get_provider_instance(vm.provider)
 
-    if stopped_vm:
+            # Stop VM in cloud provider
+            provider.stop_vm(vm.vm_id)
+        except Exception as e:
+            logger.error(f"Error stopping VM in provider: {str(e)}")
+            return jsonify({
+                'status': 'error',
+                'message': f'Error stopping VM in provider: {str(e)}'
+            }), 500
+
+    # Update VM status in database
+    updated_vm = update_vm(vm.id, status='stopped')
+
+    if updated_vm:
         return jsonify({
             'status': 'success',
             'message': f'VM with ID {vm_id} stopped successfully',
-            'data': stopped_vm
+            'data': updated_vm.to_dict()
         }), 200
 
     return jsonify({
         'status': 'error',
-        'message': f'Failed to stop VM with ID {vm_id}'
+        'message': f'Error updating VM status in database'
     }), 500
 
 @vm_provision_bp.route('/providers', methods=['GET'])

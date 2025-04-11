@@ -16,6 +16,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Import database configuration
+from config.database import init_db
+
+# Import models
+from models.user import create_admin_user
+
 # Import API blueprints
 from api.vm_provision import vm_provision_bp
 from api.node_deploy import node_deploy_bp
@@ -71,7 +77,26 @@ def health():
         'status': 'healthy'
     })
 
+# Initialize database
+@app.before_first_request
+def initialize_database():
+    """Initialize the database before the first request."""
+    try:
+        # Initialize database tables
+        init_db()
+
+        # Create default admin user
+        create_admin_user()
+
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Error initializing database: {str(e)}")
+
 if __name__ == '__main__':
+    # Initialize database
+    init_db()
+    create_admin_user()
+
     # Get port from environment variable or use default
     port = int(os.environ.get('PORT', 5000))
 
