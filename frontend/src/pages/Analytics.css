@@ -10,6 +10,35 @@
   color: #333;
 }
 
+.analytics-tabs {
+  display: flex;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.tab-button {
+  padding: 10px 20px;
+  background-color: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+  color: #333;
+  background-color: #f5f5f5;
+}
+
+.tab-button.active {
+  color: #007bff;
+  border-bottom-color: #007bff;
+  font-weight: 600;
+}
+
 .analytics-section {
   margin-bottom: 30px;
 }
@@ -20,4 +49,25 @@
   color: #555;
   border-bottom: 1px solid #eee;
   padding-bottom: 10px;
+}
+
+@media (max-width: 768px) {
+  .analytics-tabs {
+    flex-wrap: wrap;
+    border-bottom: none;
+  }
+
+  .tab-button {
+    flex: 1 0 auto;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-right: 5px;
+    margin-bottom: 5px;
+  }
+
+  .tab-button.active {
+    border: 1px solid #007bff;
+    background-color: rgba(0, 123, 255, 0.1);
+  }
 }
