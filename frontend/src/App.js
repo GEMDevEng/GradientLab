@@ -12,6 +12,9 @@ import Analytics from './pages/Analytics';
 // Import auth utilities
 import { isAuthenticated, logout } from './api/auth';
 
+// Import contexts
+import { ToastProvider } from './contexts/ToastContext';
+
 function App() {
   const [authenticated, setAuthenticated] = useState(false);
 
@@ -20,9 +23,15 @@ function App() {
     setAuthenticated(isAuthenticated());
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    setAuthenticated(false);
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setAuthenticated(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still set authenticated to false even if API call fails
+      setAuthenticated(false);
+    }
   };
 
   // Private route component
@@ -40,53 +49,55 @@ function App() {
   );
 
   return (
-    <Router basename={process.env.PUBLIC_URL}>
-      <div className="App">
-        {authenticated && (
-          <nav className="navbar">
-            <div className="navbar-brand">
-              <Link to="/">GradientLab</Link>
-            </div>
-            <ul className="navbar-nav">
-              <li className="nav-item">
-                <Link to="/" className="nav-link">Dashboard</Link>
-              </li>
-              <li className="nav-item">
-                <Link to="/analytics" className="nav-link">Analytics</Link>
-              </li>
-              <li className="nav-item">
-                <Link to="/profile" className="nav-link">Profile</Link>
-              </li>
-              <li className="nav-item">
-                <Link to="/settings" className="nav-link">Settings</Link>
-              </li>
-              <li className="nav-item">
-                <button onClick={handleLogout} className="nav-link logout-button">Logout</button>
-              </li>
-            </ul>
-          </nav>
-        )}
+    <ToastProvider>
+      <Router basename={process.env.PUBLIC_URL}>
+        <div className="App">
+          {authenticated && (
+            <nav className="navbar">
+              <div className="navbar-brand">
+                <Link to="/">GradientLab</Link>
+              </div>
+              <ul className="navbar-nav">
+                <li className="nav-item">
+                  <Link to="/" className="nav-link">Dashboard</Link>
+                </li>
+                <li className="nav-item">
+                  <Link to="/analytics" className="nav-link">Analytics</Link>
+                </li>
+                <li className="nav-item">
+                  <Link to="/profile" className="nav-link">Profile</Link>
+                </li>
+                <li className="nav-item">
+                  <Link to="/settings" className="nav-link">Settings</Link>
+                </li>
+                <li className="nav-item">
+                  <button onClick={handleLogout} className="nav-link logout-button">Logout</button>
+                </li>
+              </ul>
+            </nav>
+          )}
 
-        <main className="main-content">
-          <Switch>
-            <Route path="/login" render={() => (
-              authenticated ? <Redirect to="/" /> : <Login setAuthenticated={setAuthenticated} />
-            )} />
-            <PrivateRoute exact path="/" component={Home} />
-            <PrivateRoute path="/analytics" component={Analytics} />
-            <PrivateRoute path="/profile" component={Profile} />
-            <PrivateRoute path="/settings" component={Settings} />
-            <Redirect to="/" />
-          </Switch>
-        </main>
+          <main className="main-content">
+            <Switch>
+              <Route path="/login" render={() => (
+                authenticated ? <Redirect to="/" /> : <Login setAuthenticated={setAuthenticated} />
+              )} />
+              <PrivateRoute exact path="/" component={Home} />
+              <PrivateRoute path="/analytics" component={Analytics} />
+              <PrivateRoute path="/profile" component={Profile} />
+              <PrivateRoute path="/settings" component={Settings} />
+              <Redirect to="/" />
+            </Switch>
+          </main>
 
-        {authenticated && (
-          <footer className="footer">
-            <p>&copy; {new Date().getFullYear()} GradientLab - A $0-budget research tool for the Gradient Network</p>
-          </footer>
-        )}
-      </div>
-    </Router>
+          {authenticated && (
+            <footer className="footer">
+              <p>&copy; {new Date().getFullYear()} GradientLab - A $0-budget research tool for the Gradient Network</p>
+            </footer>
+          )}
+        </div>
+      </Router>
+    </ToastProvider>
   );
 }
 
