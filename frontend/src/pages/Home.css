@@ -22,6 +22,7 @@
   margin-bottom: 30px;
 }
 
+/* Mobile responsiveness */
 @media (max-width: 992px) {
   .home-layout {
     flex-direction: column;
@@ -29,5 +30,17 @@
 
   .home-sidebar {
     width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .desktop-dashboard {
+    display: none;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-dashboard {
+    display: none;
   }
 }

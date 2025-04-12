@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Switch, Redirect, Link } from 'react-router-dom';
 import './App.css';
+import './styles/mobile.css';
 
 // Import pages
 import Home from './pages/Home';
@@ -8,6 +9,9 @@ import Login from './pages/Login';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import Analytics from './pages/Analytics';
+
+// Import components
+import MobileNavigation from './components/MobileNavigation';
 
 // Import auth utilities
 import { isAuthenticated, logout } from './api/auth';
@@ -55,28 +59,31 @@ function App() {
         <Router basename={process.env.PUBLIC_URL}>
           <div className="App">
             {authenticated && (
-              <nav className="navbar">
-                <div className="navbar-brand">
-                  <Link to="/">GradientLab</Link>
-                </div>
-                <ul className="navbar-nav">
-                  <li className="nav-item">
-                    <Link to="/" className="nav-link">Dashboard</Link>
-                  </li>
-                  <li className="nav-item">
-                    <Link to="/analytics" className="nav-link">Analytics</Link>
-                  </li>
-                  <li className="nav-item">
-                    <Link to="/profile" className="nav-link">Profile</Link>
-                  </li>
-                  <li className="nav-item">
-                    <Link to="/settings" className="nav-link">Settings</Link>
-                  </li>
-                  <li className="nav-item">
-                    <button onClick={handleLogout} className="nav-link logout-button">Logout</button>
-                  </li>
-                </ul>
-              </nav>
+              <>
+                <nav className="navbar">
+                  <div className="navbar-brand">
+                    <Link to="/">GradientLab</Link>
+                  </div>
+                  <ul className="navbar-nav">
+                    <li className="nav-item">
+                      <Link to="/" className="nav-link">Dashboard</Link>
+                    </li>
+                    <li className="nav-item">
+                      <Link to="/analytics" className="nav-link">Analytics</Link>
+                    </li>
+                    <li className="nav-item">
+                      <Link to="/profile" className="nav-link">Profile</Link>
+                    </li>
+                    <li className="nav-item">
+                      <Link to="/settings" className="nav-link">Settings</Link>
+                    </li>
+                    <li className="nav-item">
+                      <button onClick={handleLogout} className="nav-link logout-button">Logout</button>
+                    </li>
+                  </ul>
+                  <MobileNavigation onLogout={handleLogout} />
+                </nav>
+              </>
             )}
 
             <main className="main-content">
