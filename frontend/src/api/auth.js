@@ -1,20 +1,19 @@
 import axios from 'axios';
+import { API_URL, DEFAULT_HEADERS, getToken, setToken, setUser, removeToken, removeUser } from './config';
 
 // Base URL for authentication
-const AUTH_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const AUTH_BASE_URL = `${API_URL}/auth`;
 
 // Create axios instance with auth headers
 const authApi = axios.create({
   baseURL: AUTH_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json'
-  }
+  headers: DEFAULT_HEADERS
 });
 
 // Add interceptor to include auth token in requests
 authApi.interceptors.request.use(
   config => {
-    const token = localStorage.getItem('token');
+    const token = getToken();
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
@@ -24,7 +23,7 @@ authApi.interceptors.request.use(
 );
 
 // Login function
-export const login = async (username, password) => {
+export const login = async (username, password, otpCode = null) => {
   try {
     // For development/testing, allow mock login
     if (process.env.REACT_APP_USE_MOCK_AUTH === 'true') {
@@ -39,8 +38,8 @@ export const login = async (username, password) => {
         };
 
         // Store token and user info in localStorage
-        localStorage.setItem('token', mockToken);
-        localStorage.setItem('user', JSON.stringify(mockUser));
+        setToken(mockToken);
+        setUser(mockUser);
 
         return mockUser;
       } else {
@@ -49,17 +48,28 @@ export const login = async (username, password) => {
       }
     }
 
+    // Prepare payload
+    const payload = { username, password };
+
+    // Add OTP code if provided
+    if (otpCode) {
+      payload.otp_code = otpCode;
+    }
+
     // Real API call
-    const response = await authApi.post('/auth/login', { username, password });
+    const response = await authApi.post('/login', payload);
 
     if (response.data.status === 'success') {
       const { access_token, user } = response.data.data;
 
       // Store token and user info in localStorage
-      localStorage.setItem('token', access_token);
-      localStorage.setItem('user', JSON.stringify(user));
+      setToken(access_token);
+      setUser(user);
 
       return user;
+    } else if (response.data.status === 'partial') {
+      // Return partial authentication for 2FA
+      return response.data.data;
     } else {
       throw new Error(response.data.message || 'Authentication failed');
     }
@@ -83,20 +93,20 @@ export const logout = async () => {
   try {
     // Call logout API if not using mock auth
     if (process.env.REACT_APP_USE_MOCK_AUTH !== 'true') {
-      await authApi.post('/auth/logout');
+      await authApi.post('/logout');
     }
 
     // Remove token and user info from localStorage
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    removeToken();
+    removeUser();
 
     return true;
   } catch (error) {
     console.error('Logout error:', error);
 
     // Still remove local storage items even if API call fails
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    removeToken();
+    removeUser();
 
     return true;
   }
@@ -104,22 +114,13 @@ export const logout = async () => {
 
 // Check if user is authenticated
 export const isAuthenticated = () => {
-  const token = localStorage.getItem('token');
+  const token = getToken();
   return !!token;
 };
 
 // Get current user
 export const getCurrentUser = () => {
-  const userStr = localStorage.getItem('user');
-  if (userStr) {
-    try {
-      return JSON.parse(userStr);
-    } catch (e) {
-      console.error('Error parsing user data:', e);
-      return null;
-    }
-  }
-  return null;
+  return getUser();
 };
 
 // Register function
@@ -132,7 +133,7 @@ export const register = async (userData) => {
     }
 
     // Real API call
-    const response = await authApi.post('/auth/register', userData);
+    const response = await authApi.post('/register', userData);
 
     if (response.data.status === 'success') {
       return response.data.data.user;
@@ -164,7 +165,7 @@ export const changePassword = async (currentPassword, newPassword) => {
     }
 
     // Real API call
-    const response = await authApi.post('/auth/change-password', {
+    const response = await authApi.post('/change-password', {
       current_password: currentPassword,
       new_password: newPassword
     });
