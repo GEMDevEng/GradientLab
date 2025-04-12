@@ -31,6 +31,7 @@ from api.data_collect import data_collect_bp
 from api.referral_manage import referral_manage_bp
 from api.auth import auth_bp
 from api.realtime import realtime_bp
+from api.two_factor import two_factor_bp
 
 # Import WebSocket
 from websocket.socket_manager import init_app as init_socketio
@@ -69,6 +70,7 @@ app.register_blueprint(node_deploy_bp, url_prefix='/api/node')
 app.register_blueprint(data_collect_bp, url_prefix='/api/data')
 app.register_blueprint(referral_manage_bp, url_prefix='/api/referral')
 app.register_blueprint(realtime_bp, url_prefix='/api/realtime')
+app.register_blueprint(two_factor_bp, url_prefix='/api/2fa')
 
 # Initialize WebSocket
 socketio = init_socketio(app)

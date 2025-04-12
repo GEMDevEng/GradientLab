@@ -5,6 +5,7 @@ import './Login.css';
 // Import components
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
+import TwoFactorLogin from '../components/TwoFactorLogin';
 
 // Import utilities
 import { isValidUsername } from '../utils/validation';
@@ -22,6 +23,7 @@ const Login = ({ setAuthenticated }) => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState(null);
+  const [showTwoFactor, setShowTwoFactor] = useState(false);
 
   const validateForm = () => {
     const newErrors = {};
@@ -80,6 +82,14 @@ const Login = ({ setAuthenticated }) => {
       // Call login API
       const response = await login(credentials.username, credentials.password);
 
+      // Check if two-factor authentication is required
+      if (response.status === 'partial' && response.data.requires_2fa) {
+        // Show two-factor authentication form
+        setShowTwoFactor(true);
+        setIsLoading(false);
+        return;
+      }
+
       // Set authenticated state
       setAuthenticated(true);
 
@@ -95,6 +105,42 @@ const Login = ({ setAuthenticated }) => {
       setIsLoading(false);
     }
   };
+
+  const handleTwoFactorSuccess = (result) => {
+    // Set authenticated state
+    setAuthenticated(true);
+
+    // Show success toast
+    toast.success('Login successful');
+
+    // Redirect to home page
+    history.push('/');
+  };
+
+  const handleTwoFactorCancel = () => {
+    // Hide two-factor authentication form
+    setShowTwoFactor(false);
+
+    // Clear credentials
+    setCredentials({
+      username: '',
+      password: ''
+    });
+  };
+
+  if (showTwoFactor) {
+    return (
+      <div className="login-container">
+        <div className="login-card">
+          <TwoFactorLogin
+            username={credentials.username}
+            onSuccess={handleTwoFactorSuccess}
+            onCancel={handleTwoFactorCancel}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="login-container">

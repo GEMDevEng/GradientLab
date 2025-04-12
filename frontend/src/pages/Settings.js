@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import TwoFactorSetup from '../components/TwoFactorSetup';
 import './Settings.css';
 
 const Settings = () => {
@@ -90,6 +91,11 @@ const Settings = () => {
               max="60"
             />
           </div>
+        </div>
+
+        <div className="settings-section">
+          <h3>Security Settings</h3>
+          <TwoFactorSetup />
         </div>
 
         <div className="form-actions">

@@ -1,0 +1,123 @@
+.two-factor-login {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.two-factor-login h2 {
+  text-align: center;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.login-subtitle {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #666;
+}
+
+.tfa-form {
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #555;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 18px;
+  text-align: center;
+  letter-spacing: 4px;
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.code-hint {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.cancel-button,
+.submit-button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.cancel-button {
+  background-color: #f8f9fa;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.cancel-button:hover {
+  background-color: #e9ecef;
+}
+
+.submit-button {
+  background-color: #007bff;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.submit-button:hover {
+  background-color: #0069d9;
+}
+
+.submit-button:disabled {
+  background-color: #8bb9f0;
+  cursor: not-allowed;
+}
+
+.spinner-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-message {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  text-align: center;
+}

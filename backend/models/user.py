@@ -2,11 +2,14 @@
 User model for authentication.
 """
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text
 from sqlalchemy.orm import relationship
 from passlib.hash import pbkdf2_sha256
 from config.database import Base, get_session
 import logging
+import pyotp
+import base64
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +27,12 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Two-factor authentication fields
+    otp_secret = Column(String(255))
+    otp_enabled = Column(Boolean, default=False)
+    otp_verified = Column(Boolean, default=False)
+    backup_codes = Column(Text)  # Stored as JSON string
 
     # Relationships
     vms = relationship('VM', back_populates='user', cascade='all, delete-orphan')
@@ -55,9 +64,71 @@ class User(Base):
             'name': self.name,
             'bio': self.bio,
             'is_active': self.is_active,
+            'otp_enabled': self.otp_enabled,
+            'otp_verified': self.otp_verified,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+
+    def generate_otp_secret(self):
+        """Generate a new OTP secret for the user."""
+        self.otp_secret = pyotp.random_base32()
+        self.otp_enabled = False
+        self.otp_verified = False
+        return self.otp_secret
+
+    def get_otp_uri(self):
+        """Get the OTP URI for QR code generation."""
+        if not self.otp_secret:
+            return None
+
+        app_name = 'GradientLab'
+        return pyotp.totp.TOTP(self.otp_secret).provisioning_uri(
+            name=self.email,
+            issuer_name=app_name
+        )
+
+    def verify_otp(self, otp_code):
+        """Verify an OTP code."""
+        if not self.otp_secret:
+            return False
+
+        totp = pyotp.TOTP(self.otp_secret)
+        return totp.verify(otp_code)
+
+    def generate_backup_codes(self, count=8):
+        """Generate backup codes for the user."""
+        import json
+        import secrets
+
+        # Generate random backup codes
+        codes = [secrets.token_hex(5).upper() for _ in range(count)]
+
+        # Store codes in database (hashed in a real implementation)
+        self.backup_codes = json.dumps(codes)
+
+        return codes
+
+    def verify_backup_code(self, code):
+        """Verify a backup code and remove it if valid."""
+        if not self.backup_codes:
+            return False
+
+        import json
+
+        try:
+            codes = json.loads(self.backup_codes)
+
+            # Check if code exists in backup codes
+            if code in codes:
+                # Remove the used code
+                codes.remove(code)
+                self.backup_codes = json.dumps(codes)
+                return True
+
+            return False
+        except json.JSONDecodeError:
+            return False
 
 def get_user_by_username(username):
     """Get a user by username."""

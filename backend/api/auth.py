@@ -120,6 +120,32 @@ def login():
             'message': 'Account is inactive. Please contact an administrator.'
         }), 403
 
+    # Check if 2FA is enabled
+    if user.otp_enabled and user.otp_verified:
+        # If 2FA is enabled, check if OTP code is provided
+        if 'otp_code' not in data:
+            # Return partial authentication
+            return jsonify({
+                'status': 'partial',
+                'message': 'Two-factor authentication required',
+                'data': {
+                    'user_id': user.id,
+                    'username': user.username,
+                    'requires_2fa': True
+                }
+            }), 200
+
+        # Verify OTP code
+        if not user.verify_otp(data['otp_code']):
+            # Try backup code
+            if not user.verify_backup_code(data['otp_code']):
+                logger.warning(f"Invalid 2FA code for user: {user.username}")
+
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Invalid verification code'
+                }), 401
+
     # Create access token
     access_token = create_access_token(
         identity=user.id,
