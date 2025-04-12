@@ -76,8 +76,67 @@ GradientLab/
    npm start
    ```
 
+## Testing
+
+### Backend Tests
+The backend includes comprehensive unit tests for all API endpoints. To run the tests:
+
+```bash
+cd backend
+./run_tests.sh
+```
+
+This will run all tests with coverage reporting.
+
+### Frontend Tests
+To run the frontend tests:
+
+```bash
+cd frontend
+npm test
+```
+
 ## Deployment
-The application is designed to be deployed on GitHub Pages for the frontend, with the backend potentially hosted on a free-tier platform like Heroku or using serverless functions.
+
+### Frontend Deployment
+The frontend is deployed to GitHub Pages:
+
+```bash
+cd frontend
+npm run deploy
+```
+
+This will build the React application and deploy it to the gh-pages branch.
+
+### Backend Deployment
+The backend is designed to be deployed on Heroku:
+
+1. Create a Heroku app:
+   ```bash
+   heroku create gradientlab-api
+   ```
+
+2. Add PostgreSQL add-on:
+   ```bash
+   heroku addons:create heroku-postgresql:hobby-dev
+   ```
+
+3. Deploy the backend:
+   ```bash
+   cd backend
+   git init
+   heroku git:remote -a gradientlab-api
+   git add .
+   git commit -m "Deploy backend to Heroku"
+   git push heroku master
+   ```
+
+4. Initialize the database:
+   ```bash
+   heroku run python -c "from app import initialize_database; initialize_database()"
+   ```
+
+See the backend README.md for more detailed deployment instructions.
 
 ## Contributing
 Contributions are welcome! Please feel free to submit a Pull Request.
