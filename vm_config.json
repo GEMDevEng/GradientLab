@@ -1,0 +1,19 @@
+{
+    "oracle": {
+        "num_vms": 1,
+        "compartment_id": "",
+        "config_file": ""
+    },
+    "google": {
+        "num_vms": 1,
+        "project_id": "",
+        "zone": "us-central1-a"
+    },
+    "azure": {
+        "num_vms": 1,
+        "subscription_id": "",
+        "location": "eastus"
+    },
+    "ssh_key_file": "gradient_ssh_key",
+    "nodes_file": "nodes.json"
+}

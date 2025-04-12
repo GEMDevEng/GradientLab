@@ -1,0 +1,17 @@
+{
+    "nodes_file": "nodes.json",
+    "db_file": "rewards.db",
+    "output_dir": "reports",
+    "api_url": "https://api.gradient.network",
+    "api_key": "",
+    "username": "ubuntu",
+    "key_file": "gradient_ssh_key",
+    "smtp": {
+        "server": "",
+        "port": 587,
+        "username": "",
+        "password": "",
+        "from": "",
+        "to": ""
+    }
+}

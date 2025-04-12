@@ -1,0 +1,68 @@
+[
+  {
+    "id": "sample-node-1",
+    "name": "Sample Oracle VM",
+    "provider": "oracle",
+    "region": "us-phoenix-1",
+    "ip_address": "10.0.0.1",
+    "status": "running",
+    "last_checked": "2023-06-01T12:00:00Z",
+    "uptime_percentage": 99.5,
+    "uptime_history": ["running", "running", "running", "stopped", "running"],
+    "poc_history": [
+      {
+        "timestamp": "2023-06-01T00:00:00Z",
+        "success": true
+      },
+      {
+        "timestamp": "2023-06-01T12:00:00Z",
+        "success": true
+      }
+    ],
+    "poc_success_rate": 100.0
+  },
+  {
+    "id": "sample-node-2",
+    "name": "Sample Google VM",
+    "provider": "google",
+    "region": "us-central1",
+    "ip_address": "10.0.0.2",
+    "status": "running",
+    "last_checked": "2023-06-01T12:00:00Z",
+    "uptime_percentage": 98.2,
+    "uptime_history": ["running", "running", "stopped", "running", "running"],
+    "poc_history": [
+      {
+        "timestamp": "2023-06-01T00:00:00Z",
+        "success": true
+      },
+      {
+        "timestamp": "2023-06-01T12:00:00Z",
+        "success": false
+      }
+    ],
+    "poc_success_rate": 50.0
+  },
+  {
+    "id": "sample-node-3",
+    "name": "Sample Azure VM",
+    "provider": "azure",
+    "region": "eastus",
+    "ip_address": "10.0.0.3",
+    "status": "running",
+    "last_checked": "2023-06-01T12:00:00Z",
+    "uptime_percentage": 97.8,
+    "uptime_history": ["running", "stopped", "running", "running", "running"],
+    "poc_history": [
+      {
+        "timestamp": "2023-06-01T00:00:00Z",
+        "success": true
+      },
+      {
+        "timestamp": "2023-06-01T12:00:00Z",
+        "success": true
+      }
+    ],
+    "poc_success_rate": 100.0
+  }
+]
