@@ -1,4 +1,4 @@
-# GradientLab GitBooks
+# GradientLab Documentation
 
 This directory contains the source files for the GradientLab GitBooks. These GitBooks provide comprehensive documentation for the GradientLab project.
 
