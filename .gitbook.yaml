@@ -1,0 +1,9 @@
+root: ./gitbook/
+
+structure:
+  readme: ./README.md
+  summary: ./SUMMARY.md
+
+redirects:
+  project_initiation: ./project_initiation/README.md
+  guides: ./guides/README.md
