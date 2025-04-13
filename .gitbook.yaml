@@ -1,4 +1,4 @@
-root: ./gitbook/project_initiation/
+root: ./docs-guides/
 
 structure:
   readme: ./README.md
