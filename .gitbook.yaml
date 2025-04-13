@@ -3,7 +3,3 @@ root: ./
 structure:
   readme: ./gitbook/README.md
   summary: ./gitbook/SUMMARY.md
-
-redirects:
-  project-initiation: ./gitbook/project_initiation/README.md
-  guides: ./gitbook/guides/README.md
