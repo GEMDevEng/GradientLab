@@ -42,10 +42,24 @@ heroku config:set --app gradientlab-api FLASK_DEBUG=False
 # Deploy backend to Heroku
 echo "Deploying backend to Heroku..."
 cd backend
+
+# Check if .git directory exists and remove it
+if [ -d ".git" ]; then
+    rm -rf .git
+fi
+
+# Initialize git repository
 git init
+
+# Create Heroku remote
+heroku git:remote -a gradientlab-api
+
+# Add and commit files
 git add .
 git commit -m "Deploy backend to Heroku"
-git push --force heroku main
+
+# Push to Heroku
+git push --force heroku master
 
 # Open the app in browser
 echo "Opening app in browser..."
